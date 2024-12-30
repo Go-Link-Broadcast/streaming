@@ -175,22 +175,26 @@
         const scriptURL = 'https://script.google.com/macros/s/AKfycby8jDZyM4jodylguNojd6pUehmGcPEvk0SAlbidPIi8iyhnlHVnKxcgIXHA_pYB5SnB/exec';
 
         function fetchRecordings() {
-            fetch(scriptURL)
-                .then(response => response.json())
-                .then(data => {
-                    playlist.innerHTML = ''; // Clear current playlist
-                    data.forEach(recording => {
-                        const listItem = document.createElement('li');
-                        listItem.className = 'list-group-item';
-                        listItem.innerHTML = `
-                            <img src="https://i.ibb.co/7nWY1dL/Go-Link-logo.jpg" alt="Thumbnail">
-                            <a href="#" data-url="<span class="math-inline">\{recording\.url\}"\></span>{recording.title}</a>
-                        `;
-                        playlist.appendChild(listItem);
-                    });
-                })
-                .catch(error => console.error('Error fetching recordings:', error));
-        }
+  fetch(scriptURL)
+    .then(response => response.json())
+    .then(data => {
+      playlist.innerHTML = ''; // Clear current playlist
+
+      data.forEach(recording => {
+        const listItem = document.createElement('li');
+        listItem.className = 'list-group-item';
+
+        // Assuming data format: { title: "Recording Title", url: "https://..." }
+        listItem.innerHTML = `
+          <img src="https://i.ibb.co/7nWY1dL/Go-Link-logo.jpg" alt="Thumbnail">
+          <a href="#" data-url="${recording.url}">${recording.title}</a>
+        `;
+
+        playlist.appendChild(listItem);
+      });
+    })
+    .catch(error => console.error('Error fetching recordings:', error));
+}
 
         // Handle playlist clicks
         playlist.addEventListener('click', event => {
