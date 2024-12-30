@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>GoLink Broadcast</title>
+
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        .container-fluid {
+            margin-top: 20px;
+        }
+        #heading {
+            text-align: center;
+            padding: 20px;
+        }
+        .list-container {
+            padding: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            background-color: #000;
+        }
+        #player-container {
+            margin-top: 20px;
+            background: #000;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+        }
+        #playlist {
+            background: #1e1e1e;
+            border-radius: 10px;
+            padding: 15px;
+        }
+        .list-group-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: transparent;
+            border: none;
+        }
+        .list-group-item img {
+            width: 60px;
+            height: 60px;
+            border-radius: 5px;
+        }
+        .list-group-item a {
+            color: #e0e0e0;
+            text-decoration: none;
+            display: block;
+            transition: color 0.3s;
+        }
+        .list-group-item a:hover {
+            color: #bb86fc;
+        }
+        .toggle-btn {
+            display: block;
+            margin: 10px auto;
+            padding: 10px 20px;
+            background-color: #bb86fc;
+            color: #121212;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .toggle-btn:hover {
+            background-color: #9a6ce2;
+        }
+
+        /* Splash Screen Styles */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #121212;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        #splash-screen img {
+            width: 150px;
+            animation: fadeInOut 3s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="splash-screen">
+        <img src="https://i.ibb.co/7nWY1dL/Go-Link-logo.jpg" alt="Go-Link Logo">
+    </div>
+
+    <div class="container-fluid" id="main-content" style="display: none;">
+        <div id="heading">
+            <img src="https://i.ibb.co/7nWY1dL/Go-Link-logo.jpg" alt="Go-Link-logo" class="logo" width="15%">
+        </div>
+        <div class="row">
+            <div class="col-md-8">
+                <div id="player-container">
+                    <h1 id="heading"><span class="animated-heading"><img src="https://raw.githubusercontent.com/pratikkarbhal/Web-IPTV/main/live.gif" alt="live logo" class="logo" width="8%"> LIVE STREAM</span><span></span></h1>
+                    <video id="mediaPlayer" autoplay muted playsinline controls></video>
+                    <button id="toggleLive" class="toggle-btn">Switch to Live Stream</button>
+                </div>
+            </div>
+            <div class="col-md-4 list-container">
+                <h3 style="color: #bb86fc;">Previous Recordings</h3>
+                <ul id="playlist" class="list-group"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Hide splash screen after 3 seconds
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('splash-screen').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            }, 3000);
+        });
+
+        const videoElement = document.getElementById('mediaPlayer');
+        const playlist = document.getElementById('playlist');
+        const toggleLiveButton = document.getElementById('toggleLive');
+        let liveStream = null;
+
+        // Start the live stream
+        function startLiveStream() {
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(stream => {
+                    liveStream = stream;
+                    videoElement.srcObject = stream;
+                    videoElement.play();
+                })
+                .catch(err => console.error('Error accessing webcam:', err));
+        }
+
+        // Stop the live stream
+        function stopLiveStream() {
+            if (liveStream) {
+                liveStream.getTracks().forEach(track => track.stop());
+                liveStream = null;
+            }
+        }
+
+        // Toggle between live stream and recordings
+        toggleLiveButton.addEventListener('click', () => {
+            if (liveStream) {
+                stopLiveStream();
+                toggleLiveButton.textContent = 'Switch to Live Stream';
+            } else {
+                startLiveStream();
+                toggleLiveButton.textContent = 'Switch to Recordings';
+            }
+        });
+
+        // Fetch Recordings from Google Sheets
+        const scriptURL = 'https://script.google.com/macros/s/AKfycby8jDZyM4jodylguNojd6pUehmGcPEvk0SAlbidPIi8iyhnlHVnKxcgIXHA_pYB5SnB/exec';
+
+        function fetchRecordings() {
+            fetch(scriptURL)
+                .then(response => response.json())
+                .then(data => {
+                    playlist.innerHTML = ''; // Clear current playlist
+                    data.forEach(recording => {
+                        const listItem = document.createElement('li');
+                        listItem.className = 'list-group-item';
+                        listItem.innerHTML = `
+                            <img src="https://i.ibb.co/7nWY1dL/Go-Link-logo.jpg" alt="Thumbnail">
+                            <a href="#" data-url="<span class="math-inline">\{recording\.url\}"\></span>{recording.title}</a>
+                        `;
+                        playlist.appendChild(listItem);
+                    });
+                })
+                .catch(error => console.error('Error fetching recordings:', error));
+        }
+
+        // Handle playlist clicks
+        playlist.addEventListener('click', event => {
+            event.preventDefault();
+            const link = event.target.closest('a');
+            if (link) {
+                const recordingURL = link.getAttribute('data-url');
+                if (recordingURL) {
+                    stopLiveStream();
+                    videoElement.srcObject = null; // Clear live stream
+                    // Check if the recordingURL is a YouTube video URL
+                    if (recordingURL.includes('youtube.com') || recordingURL.includes('youtu.be')) {
+                        // Use YouTube extension to get the playable link
+                        // ... (implementation of YouTube extension integration)
+                    } else {
+                        // Assume it's an MP4 or other direct video link
+                        videoElement.src = recordingURL;
+                    }
+                    videoElement.play();
+                    toggleLiveButton.textContent = 'Switch to Live Stream';
+                }
+            }
+        });
+
+       videoElement.addEventListener('error', (event) => {
+    console.error('Video playback error:', event);
+    alert('Failed to load video. Please try another recording or check your connection.');
+});
+
+    // Fetch recordings initially and update periodically
+    fetchRecordings();
+    setInterval(fetchRecordings, 10000); // Update every 10 seconds
+
+    // Start with live stream
+    startLiveStream();
+</script>
+</body>
+</html>
